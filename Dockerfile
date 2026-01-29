@@ -1,26 +1,16 @@
-FROM alpine:edge
+FROM alpine:latest
 
-ARG AUUID="31034190-cfde-47c0-98fc-b71416d3c97a"
-ARG CADDYIndexPage="https://github.com/AYJCSGM/mikutap/archive/master.zip"
-ARG ParameterSSENCYPT="chacha20-ietf-poly1305"
-ARG PORT=8080
+ENV PORT=8080
+ENV UUID=24b4b1e1-7a89-45f6-858c-242cf53b5bdb
 
-ADD etc/Caddyfile /tmp/Caddyfile
-ADD etc/xray.json /tmp/xray.json
-ADD start.sh /start.sh
+RUN apk add --no-cache --virtual .build-deps ca-certificates curl unzip
 
-RUN apk update && \
-    apk add --no-cache ca-certificates caddy tor wget && \
-    wget -O Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
-    unzip Xray-linux-64.zip && \
-    chmod +x /xray && \
-    rm -rf /var/cache/apk/* && \
-    rm -f Xray-linux-64.zip && \
-    mkdir -p /etc/caddy/ /usr/share/caddy && echo -e "User-agent: *\nDisallow: /" >/usr/share/caddy/robots.txt && \
-    wget $CADDYIndexPage -O /usr/share/caddy/index.html && unzip -qo /usr/share/caddy/index.html -d /usr/share/caddy/ && mv /usr/share/caddy/*/* /usr/share/caddy/ && \
-    cat /tmp/Caddyfile | sed -e "1c :$PORT" -e "s/\$AUUID/$AUUID/g" -e "s/\$MYUUID-HASH/$(caddy hash-password --plaintext $AUUID)/g" >/etc/caddy/Caddyfile && \
-    cat /tmp/xray.json | sed -e "s/\$AUUID/$AUUID/g" -e "s/\$ParameterSSENCYPT/$ParameterSSENCYPT/g" >/xray.json
+RUN mkdir /tmp/xray && \
+    curl -L -H "Cache-Control: no-cache" -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
+    unzip /tmp/xray/xray.zip -d /tmp/xray && \
+    install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
+    rm -rf /tmp/xray
 
-RUN chmod +x /start.sh
+RUN printf '{"inbounds":[{"port":%s,"protocol":"vless","settings":{"clients":[{"id":"%s"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/chat"}}}],"outbounds":[{"protocol":"freedom"}]}' "$PORT" "$UUID" > /config.json
 
-CMD /start.sh
+CMD ["/usr/local/bin/xray", "-c", "/config.json"]
