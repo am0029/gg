@@ -43,7 +43,6 @@
 
 
 
-
 FROM alpine:latest
 
 ENV PORT=8080
@@ -55,7 +54,15 @@ RUN mkdir /tmp/xray && \
     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
     rm -rf /tmp/xray
 
-RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"grpc","grpcSettings":{"serviceName":"godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
+# اضافه کردن هدرهای کاستوم برای شبیه‌سازی ترافیک عادی
+RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus","headers":{"Host":"www.microsoft.com"}}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
 
 CMD ["/usr/local/bin/xray", "-c", "/config.json"]
+
+
+
+
+
+
+
 
