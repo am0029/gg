@@ -26,7 +26,7 @@
 
 FROM alpine:latest
 
-ENV PORT=80
+ENV PORT=8080
 RUN apk add --no-cache ca-certificates curl unzip
 
 RUN mkdir /tmp/xray && \
@@ -35,6 +35,6 @@ RUN mkdir /tmp/xray && \
     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
     rm -rf /tmp/xray
 
-RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":80,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/chat"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
+RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/chat"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
 
 CMD ["/usr/local/bin/xray", "-c", "/config.json"]
