@@ -43,36 +43,27 @@
 
 
 
-# FROM alpine:latest
-
-# ENV PORT=8080
-# RUN apk add --no-cache ca-certificates curl unzip
-
-# RUN mkdir /tmp/xray && \
-#     curl -L -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
-#     unzip /tmp/xray/xray.zip -d /tmp/xray && \
-#     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
-#     rm -rf /tmp/xray
-
-# RUN printf '{"log":{"loglevel":"none"},"dns":{"servers":["1.1.1.1","8.8.8.8"]},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
-
-# CMD ["/usr/local/bin/xray", "-c", "/config.json"]
-
-
-
-
-
 FROM alpine:latest
+
 ENV PORT=8080
 RUN apk add --no-cache ca-certificates curl unzip
+
 RUN mkdir /tmp/xray && \
     curl -L -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
     unzip /tmp/xray/xray.zip -d /tmp/xray && \
     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
     rm -rf /tmp/xray
-RUN printf '{"log":{"loglevel":"none"},"dns":{"servers":["1.1.1.1"]},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
-EXPOSE 8080
+
+RUN printf '{"log":{"loglevel":"none"},"dns":{"servers":["1.1.1.1","8.8.8.8"]},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
+
 CMD ["/usr/local/bin/xray", "-c", "/config.json"]
+
+
+
+
+
+
+
 
 
 
