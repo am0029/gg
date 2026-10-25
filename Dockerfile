@@ -1,68 +1,23 @@
-# FROM alpine:latest
-
-# ENV PORT=80
-# # تعریف ۴ شناسه منحصر‌به‌فرد
-# ENV UUID1=24b4b1e1-7a89-45f6-858c-242cf53b5bdb
-# ENV UUID2=b1234567-89ab-cdef-0123-456789abcdef
-# ENV UUID3=c9876543-21ba-fedc-3210-abcdef012345
-# ENV UUID4=d5555555-4444-3333-2222-111111111111
-
-# RUN apk add --no-cache --virtual .build-deps ca-certificates curl unzip
-
-# RUN mkdir /tmp/xray && \
-#     curl -L -H "Cache-Control: no-cache" -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
-#     unzip /tmp/xray/xray.zip -d /tmp/xray && \
-#     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
-#     rm -rf /tmp/xray
-
-# # اضافه کردن ۴ کلاینت به فایل کانفیگ
-# RUN printf '{"inbounds":[{"port":%s,"protocol":"vless","settings":{"clients":[{"id":"%s"},{"id":"%s"},{"id":"%s"},{"id":"%s"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/chat"}}}],"outbounds":[{"protocol":"freedom"}]}' \
-#     "$PORT" "$UUID1" "$UUID2" "$UUID3" "$UUID4" > /config.json
-
-# CMD ["/usr/local/bin/xray", "-c", "/config.json"]
-
-
-
-
-# FROM alpine:latest
-
-# ENV PORT=8080
-# RUN apk add --no-cache ca-certificates curl unzip
-
-# RUN mkdir /tmp/xray && \
-#     curl -L -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
-#     unzip /tmp/xray/xray.zip -d /tmp/xray && \
-#     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
-#     rm -rf /tmp/xray
-
-# RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/chat"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
-
-# CMD ["/usr/local/bin/xray", "-c", "/config.json"]
-
-
-
-
-
 FROM alpine:latest
 
 ENV PORT=8080
 RUN apk add --no-cache ca-certificates curl unzip
 
+# 1. نصب Xray (دقیقاً مثل قبل)
 RUN mkdir /tmp/xray && \
     curl -L -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
     unzip /tmp/xray/xray.zip -d /tmp/xray && \
     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
     rm -rf /tmp/xray
 
+# 2. نصب Cloudflared برای تونل
+RUN curl -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
+    chmod +x /usr/local/bin/cloudflared
+
+# 3. ساخت کانفیگ Xray (همان کدهای خودت)
 RUN printf '{"log":{"loglevel":"none"},"dns":{"servers":["1.1.1.1","8.8.8.8"]},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"},{"id":"b1234567-89ab-cdef-0123-456789abcdef"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
 
-CMD ["/usr/local/bin/xray", "-c", "/config.json"]
+# 4. اسکریپت برای اجرای همزمان Xray و Cloudflared
+RUN printf '#!/bin/sh\n/usr/local/bin/xray -c /config.json &\n/usr/local/bin/cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"\n' > /entrypoint.sh && chmod +x /entrypoint.sh
 
-
-
-
-
-
-
-
-
+ENTRYPOINT ["/entrypoint.sh"]
