@@ -1,23 +1,19 @@
 FROM alpine:latest
 
 ENV PORT=8080
-RUN apk add --no-cache ca-certificates curl unzip
+RUN apk add --no-cache ca-certificates curl unzip openssl
 
-# 1. نصب Xray (دقیقاً مثل قبل)
+# 1. نصب Xray
 RUN mkdir /tmp/xray && \
     curl -L -o /tmp/xray/xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip && \
     unzip /tmp/xray/xray.zip -d /tmp/xray && \
     install -m 755 /tmp/xray/xray /usr/local/bin/xray && \
     rm -rf /tmp/xray
 
-# 2. نصب Cloudflared برای تونل
-RUN curl -L -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && \
-    chmod +x /usr/local/bin/cloudflared
+# 2. ساخت گواهی SSL خودامضا (برای اینکه TLS کار کنه)
+RUN openssl req -x509 -newkey rsa:2048 -keyout /key.pem -out /cert.pem -days 3650 -nodes -subj "/CN=likely-daisy-digidanesh1234-f73a8475.koyeb.app"
 
-# 3. ساخت کانفیگ Xray با قابلیت fallbacks (همه روی پورت 8080)
-RUN printf '{"log":{"loglevel":"none"},"dns":{"servers":["1.1.1.1","8.8.8.8"]},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"},{"id":"b1234567-89ab-cdef-0123-456789abcdef"}],"decryption":"none","fallbacks":[{"path":"/godlovesus","dest":8081}]},"streamSettings":{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/etc/ssl/certs/ssl-cert-snakeoil.pem","keyFile":"/etc/ssl/private/ssl-cert-snakeoil.key"}]}}},{"port":8081,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"},{"id":"b1234567-89ab-cdef-0123-456789abcdef"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
+# 3. ساخت کانفیگ ترکیبی (TCP به همراه Fallback برای WS)
+RUN printf '{"log":{"loglevel":"none"},"inbounds":[{"port":8080,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"},{"id":"b1234567-89ab-cdef-0123-456789abcdef"}],"decryption":"none","fallbacks":[{"path":"/godlovesus","dest":8081}]},"streamSettings":{"network":"tcp","security":"tls","tlsSettings":{"certificates":[{"certificateFile":"/cert.pem","keyFile":"/key.pem"}]}}},{"port":8081,"protocol":"vless","settings":{"clients":[{"id":"24b4b1e1-7a89-45f6-858c-242cf53b5bdb"},{"id":"b1234567-89ab-cdef-0123-456789abcdef"}],"decryption":"none"},"streamSettings":{"network":"ws","wsSettings":{"path":"/godlovesus"}}}],"outbounds":[{"protocol":"freedom"}]}' > /config.json
 
-# 4. اسکریپت برای اجرای همزمان Xray و Cloudflared
-RUN printf '#!/bin/sh\n/usr/local/bin/xray -c /config.json &\n/usr/local/bin/cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"\n' > /entrypoint.sh && chmod +x /entrypoint.sh
-
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/local/bin/xray", "-c", "/config.json"]
